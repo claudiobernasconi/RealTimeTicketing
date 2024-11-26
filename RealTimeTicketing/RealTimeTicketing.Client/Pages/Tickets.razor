@@ -1,0 +1,72 @@
+﻿@page "/tickets"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+
+<h3>Tickets</h3>
+
+<div>
+    <label>Ticket ID:</label>
+    <input @bind="ticketId" />
+</div>
+<div>
+    <label>Status:</label>
+    <input @bind="status" />
+</div>
+<button @onclick="UpdateTicket" disabled="@(!IsConnected)">Update Ticket</button>
+
+<h4>Live Updates:</h4>
+<ul>
+    @foreach (var ticket in tickets)
+    {
+        <li>@ticket.Key: @ticket.Value</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? _hubConnection;
+    private string ticketId = string.Empty;
+    private string status = string.Empty;
+    private Dictionary<string, string> tickets = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/ticketHub"))
+            .Build();
+
+        _hubConnection.On<string, string>("ReceiveTicketUpdate", (ticketId, status) =>
+        {
+            tickets[ticketId] = status;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    public bool IsConnected
+    {
+        get
+        {
+            return _hubConnection?.State == HubConnectionState.Connected;
+        }
+    }
+
+    private async Task UpdateTicket()
+    {
+        if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("UpdateTicket", ticketId, status);
+        }
+
+        ticketId = string.Empty;
+        status = string.Empty;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
