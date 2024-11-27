@@ -53,7 +53,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _tickets = await HttpClient.GetFromJsonAsync<IEnumerable<Ticket>>("api/tickets");
+        if( HttpClient.BaseAddress is not null) 
+        {
+            _tickets = await HttpClient.GetFromJsonAsync<IEnumerable<Ticket>>("api/tickets");
+        }        
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/ticketHub"))
