@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using RealTimeTicketing.Client.Tickets;
+using RealTimeTicketing.Tickets;
 
 namespace RealTimeTicketing.Hubs;
 
-public class TicketHub : Hub
+public class TicketHub(ITicketService _ticketService) : Hub
 {
-    public async Task UpdateTicket(string ticketId, string status)
+    public async Task UpdateTicket(TicketUpdate ticket)
     {
-        await Clients.All.SendAsync("ReceiveTicketUpdate", ticketId, status);
+        await Clients.All.SendAsync("ReceiveTicketUpdate", ticket);
+        _ticketService.UpdateState(ticket.TicketId, ticket.State);
     }
 }

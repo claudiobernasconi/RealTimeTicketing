@@ -1,5 +1,6 @@
 using RealTimeTicketing.Components;
 using RealTimeTicketing.Hubs;
+using RealTimeTicketing.Tickets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
+builder.Services.AddHttpClient();
+builder.Services.AddControllers();
+
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<ITicketService, TicketService>();
 
 var app = builder.Build();
 
@@ -33,6 +38,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(RealTimeTicketing.Client._Imports).Assembly);
 
+app.MapControllers();
 app.MapHub<TicketHub>("/ticketHub");
 
 app.Run();

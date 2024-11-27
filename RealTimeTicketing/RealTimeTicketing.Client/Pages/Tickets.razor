@@ -1,65 +1,83 @@
 ﻿@page "/tickets"
 @using Microsoft.AspNetCore.SignalR.Client
+@using RealTimeTicketing.Client.Tickets
+
 @inject NavigationManager Navigation
+@inject HttpClient HttpClient
 
 <h3>Tickets</h3>
 
-<div>
-    <label>Ticket ID:</label>
-    <input @bind="ticketId" />
-</div>
-<div>
-    <label>Status:</label>
-    <input @bind="status" />
-</div>
-<button @onclick="UpdateTicket" disabled="@(!IsConnected)">Update Ticket</button>
-
-<h4>Live Updates:</h4>
-<ul>
-    @foreach (var ticket in tickets)
-    {
-        <li>@ticket.Key: @ticket.Value</li>
-    }
-</ul>
+@if (_tickets is not null)
+{
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 100px;">Ticket Id</th>
+                <th style="width: 300px;">Title</th>
+                <th style="width: 100px;">Created</th>
+                <th style="width: 200px;">State</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in _tickets)
+            {
+                <tr>
+                    <td>@ticket.TicketId</td>
+                    <td>@ticket.Title</td>
+                    <td>@ticket.Created.ToShortDateString()</td>
+                    <td>
+                        <select 
+                            class="form-select" 
+                            @onchange="e => UpdateTicket(ticket.TicketId, e.Value?.ToString())"
+                        >
+                            @foreach (var state in ticketStates)
+                            {
+                                <option 
+                                value="@state" 
+                                selected="@(state == ticket.State)">
+                                    @state
+                                </option>
+                            }
+                        </select>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 @code {
     private HubConnection? _hubConnection;
-    private string ticketId = string.Empty;
-    private string status = string.Empty;
-    private Dictionary<string, string> tickets = new();
+    private IEnumerable<Ticket>? _tickets = new List<Ticket>();
+    private List<TicketState> ticketStates = Enum.GetValues<TicketState>().ToList();
 
     protected override async Task OnInitializedAsync()
     {
+        _tickets = await HttpClient.GetFromJsonAsync<IEnumerable<Ticket>>("api/tickets");
+
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/ticketHub"))
             .Build();
 
-        _hubConnection.On<string, string>("ReceiveTicketUpdate", (ticketId, status) =>
+        _hubConnection.On<TicketUpdate>("ReceiveTicketUpdate", (TicketUpdate ticket) =>
         {
-            tickets[ticketId] = status;
+            if (_tickets is not null)
+            {
+                _tickets.Single(t => t.TicketId == ticket.TicketId).State = ticket.State;
+            }
             InvokeAsync(StateHasChanged);
         });
 
         await _hubConnection.StartAsync();
     }
 
-    public bool IsConnected
+    private async Task UpdateTicket(int ticketId, string? ticketState)
     {
-        get
-        {
-            return _hubConnection?.State == HubConnectionState.Connected;
-        }
-    }
-
-    private async Task UpdateTicket()
-    {
+        Enum.TryParse<TicketState>(ticketState, out var state);
         if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
         {
-            await _hubConnection.SendAsync("UpdateTicket", ticketId, status);
+            await _hubConnection.SendAsync("UpdateTicket", new TicketUpdate(ticketId, state));
         }
-
-        ticketId = string.Empty;
-        status = string.Empty;
     }
 
     public async ValueTask DisposeAsync()
