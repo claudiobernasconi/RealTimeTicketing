@@ -2,17 +2,16 @@
 using RealTimeTicketing.Client.Tickets;
 using RealTimeTicketing.Tickets;
 
-namespace RealTimeTicketing.Controllers
+namespace RealTimeTicketing.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class TicketsController(ITicketService _ticketService) : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class TicketsController(ITicketService _ticketService) : ControllerBase
+    [HttpGet]
+    public ActionResult<IEnumerable<Ticket>> GetTickets()
     {
-        [HttpGet]
-        public ActionResult<IEnumerable<Ticket>> GetTickets()
-        {
-            var tickets = _ticketService.GetTickets();
-            return Ok(tickets);
-        }
+        var tickets = _ticketService.GetTickets();
+        return Ok(tickets);
     }
 }

@@ -26,15 +26,12 @@
                     <td>@ticket.Title</td>
                     <td>@ticket.Created.ToShortDateString()</td>
                     <td>
-                        <select 
-                            class="form-select" 
-                            @onchange="e => UpdateTicket(ticket.TicketId, e.Value?.ToString())"
-                        >
-                            @foreach (var state in ticketStates)
+                        <select class="form-select"
+                                @onchange="e => UpdateTicket(ticket.TicketId, e.Value?.ToString())">
+                            @foreach (var state in _ticketStates)
                             {
-                                <option 
-                                value="@state" 
-                                selected="@(state == ticket.State)">
+                                <option value="@state"
+                                        selected="@(state == ticket.State)">
                                     @state
                                 </option>
                             }
@@ -49,14 +46,14 @@
 @code {
     private HubConnection? _hubConnection;
     private IEnumerable<Ticket>? _tickets = new List<Ticket>();
-    private List<TicketState> ticketStates = Enum.GetValues<TicketState>().ToList();
+    private List<TicketState> _ticketStates = Enum.GetValues<TicketState>().ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        if( HttpClient.BaseAddress is not null) 
+        if (HttpClient.BaseAddress is not null)
         {
             _tickets = await HttpClient.GetFromJsonAsync<IEnumerable<Ticket>>("api/tickets");
-        }        
+        }
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/ticketHub"))
