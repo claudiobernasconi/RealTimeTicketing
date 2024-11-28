@@ -45,7 +45,7 @@
 
 @code {
     private HubConnection? _hubConnection;
-    private IEnumerable<Ticket>? _tickets = new List<Ticket>();
+    private IEnumerable<Ticket>? _tickets;
     private List<TicketState> _ticketStates = Enum.GetValues<TicketState>().ToList();
 
     protected override async Task OnInitializedAsync()
